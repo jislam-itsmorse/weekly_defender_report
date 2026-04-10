@@ -1,12 +1,11 @@
-from collections import defaultdict
+from collections import defaultdict, Counter
+from datetime import datetime
 import requests
 import os
-from datetime import datetime
 
 # =========================
 # CONFIG
 # =========================
-
 TENANT_ID = os.getenv("TENANT_ID")
 CLIENT_ID = os.getenv("DEFENDER_API_CLIENT_ID")
 CLIENT_SECRET = os.getenv("DEFENDER_API_CLIENT_SECRET")
@@ -32,7 +31,7 @@ def get_access_token():
     return response.json()["access_token"]
 
 # =========================
-# STEP 2: Run KQL Query
+# STEP 2: Run Optimized KQL Query
 # =========================
 def run_query(token):
     headers = {
@@ -45,7 +44,11 @@ def run_query(token):
     | where Timestamp > ago(7d)
     | where isnotempty(ThreatTypes)
     | where ThreatTypes has_any ("Phish", "CredentialPhish")
-    | summarize PhishCount = toint(count())
+    | extend SenderDomain = tostring(split(SenderFromAddress, "@")[1])
+    | summarize
+        TotalPhish = count(),
+        TopDomains = make_list(SenderDomain, 100),
+        TopRecipients = make_list(RecipientEmailAddress, 100)
     """
 
     body = {"query": query}
@@ -98,7 +101,6 @@ def get_security_score(token):
 # =========================
 def send_to_slack(message):
     payload = {"text": message}
-
     response = requests.post(SLACK_WEBHOOK_URL, json=payload)
     response.raise_for_status()
 
@@ -108,15 +110,25 @@ def send_to_slack(message):
 def main():
     token = get_access_token()
 
-    # --- Phishing count ---
+    # --- Query phishing insights ---
     query_data = run_query(token)
     results = query_data.get("results", [])
 
     if results:
-        raw_value = results[0].get("PhishCount", 0)
-        phishing_count = extract_value(raw_value)
+        row = results[0]
+
+        phishing_count = extract_value(row.get("TotalPhish", 0))
+
+        domains = row.get("TopDomains", [])
+        users = row.get("TopRecipients", [])
+
+        top_domains = Counter(domains).most_common(3)
+        top_users = Counter(users).most_common(3)
+
     else:
         phishing_count = 0
+        top_domains = []
+        top_users = []
 
     # --- Secure Score ---
     overall_pct, current, max_score, category_avg = get_security_score(token)
@@ -136,6 +148,22 @@ def main():
         message += f"\n• {category}: {score}%"
 
     message += f"\n\n📧 *Phishing Emails (last 7 days):* {phishing_count}"
+
+    # Top domains
+    message += "\n\n🌐 *Top Phishing Domains:*"
+    if top_domains:
+        for d, c in top_domains:
+            message += f"\n• {d} ({c})"
+    else:
+        message += "\n• None"
+
+    # Top users
+    message += "\n\n🎯 *Most Targeted Users:*"
+    if top_users:
+        for u, c in top_users:
+            message += f"\n• {u} ({c})"
+    else:
+        message += "\n• None"
 
     # --- Send ---
     send_to_slack(message)
