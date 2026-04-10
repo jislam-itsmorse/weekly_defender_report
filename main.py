@@ -52,7 +52,7 @@ def run_query(token):
 
     body = {"query": query}
 
-    response = requests.post(API_URL_QUERY, headers=headers, json=body)  # ✅ FIXED
+    response = requests.post(API_URL_QUERY, headers=headers, json=body)
     response.raise_for_status()
     return response.json()
 
@@ -106,7 +106,12 @@ def main():
 
     # Get phishing count
     query_data = run_query(token)
-    phishing_count = query_data["results"][0][0] if query_data.get("results") else 0
+    results = query_data.get("results", [])
+
+    if results and isinstance(results[0], dict):
+        phishing_count = list(results[0].values())[0]
+    else:
+        phishing_count = 0
 
     # Get security score
     overall_pct, current, max_score, category_avg = get_security_score(token)
