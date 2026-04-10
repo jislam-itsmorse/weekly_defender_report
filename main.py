@@ -133,7 +133,7 @@ def main():
     # --- Secure Score ---
     overall_pct, current, max_score, category_avg = get_security_score(token)
 
-    # --- Build Slack message ---
+    # --- Build Slack message (IMPROVED UI) ---
     now = datetime.utcnow().strftime("%Y-%m-%d")
 
     message = f"""
@@ -155,19 +155,19 @@ Data: {category_avg.get('Data', 0):.1f}% | Device: {category_avg.get('Device', 0
 Phishing Emails: *{phishing_count}*
 """
 
-# Top domains (compact)
-if top_domains:
-    domains_str = ", ".join([f"{d} ({c})" for d, c in top_domains])
-    message += f"\nTop Domains: {domains_str}"
-else:
-    message += "\nTop Domains: None"
+    # --- Top Domains (compact) ---
+    if top_domains:
+        domains_str = ", ".join([f"{d} ({c})" for d, c in top_domains])
+        message += f"\nTop Domains: {domains_str}"
+    else:
+        message += "\nTop Domains: None"
 
-# Top users (compact)
-if top_users:
-    users_str = ", ".join([f"{u} ({c})" for u, c in top_users])
-    message += f"\nTop Targets: {users_str}"
-else:
-    message += "\nTop Targets: None"
+    # --- Top Users (compact) ---
+    if top_users:
+        users_str = ", ".join([f"{u} ({c})" for u, c in top_users])
+        message += f"\nTop Targets: {users_str}"
+    else:
+        message += "\nTop Targets: None"
 
     # --- Send ---
     send_to_slack(message)
