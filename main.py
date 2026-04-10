@@ -97,6 +97,19 @@ def get_security_score(token):
     return overall_pct, current, max_score, category_avg
 
 # =========================
+# NEW: Auto Rating Function
+# =========================
+def get_rating(score):
+    if score >= 85:
+        return "Top-tier"
+    elif score >= 80:
+        return "Strong"
+    elif score >= 65:
+        return "Mature"
+    else:
+        return "Below Average"
+
+# =========================
 # STEP 4: Send to Slack
 # =========================
 def send_to_slack(message):
@@ -133,13 +146,16 @@ def main():
     # --- Secure Score ---
     overall_pct, current, max_score, category_avg = get_security_score(token)
 
-    # --- Build Slack message (IMPROVED UI) ---
+    # --- Rating ---
+    rating = get_rating(overall_pct)
+
+    # --- Build Slack message (IMPROVED UI + AUTO RATING) ---
     now = datetime.utcnow().strftime("%Y-%m-%d")
 
     message = f"""
 🔐 *Weekly Defender Report* ({now})
 
-*Secure Score:* {overall_pct:.1f}%  _(Top-tier)_
+*Secure Score:* {overall_pct:.1f}%  _({rating})_
 
 ━━━━━━━━━━━━━━
 📊 *Benchmark*
@@ -155,14 +171,14 @@ Data: {category_avg.get('Data', 0):.1f}% | Device: {category_avg.get('Device', 0
 Phishing Emails: *{phishing_count}*
 """
 
-    # --- Top Domains (compact) ---
+    # --- Top Domains ---
     if top_domains:
         domains_str = ", ".join([f"{d} ({c})" for d, c in top_domains])
         message += f"\nTop Domains: {domains_str}"
     else:
         message += "\nTop Domains: None"
 
-    # --- Top Users (compact) ---
+    # --- Top Users ---
     if top_users:
         users_str = ", ".join([f"{u} ({c})" for u, c in top_users])
         message += f"\nTop Targets: {users_str}"
