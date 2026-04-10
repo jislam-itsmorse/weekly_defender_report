@@ -139,41 +139,35 @@ def main():
     message = f"""
 🔐 *Weekly Defender Report* ({now})
 
-*Overall Secure Score:* {overall_pct:.2f}% ({current}/{max_score})
+*Secure Score:* {overall_pct:.1f}%  _(Top-tier)_
 
-*Category Breakdown:*
+━━━━━━━━━━━━━━
+📊 *Benchmark*
+Avg: 45–60% | Mature: 65–80% | Top: 80%+
+━━━━━━━━━━━━━━
+
+📌 *Key Areas*
+Apps: {category_avg.get('Apps', 0):.1f}% | Identity: {category_avg.get('Identity', 0):.1f}%
+Data: {category_avg.get('Data', 0):.1f}% | Device: {category_avg.get('Device', 0):.1f}%
+
+━━━━━━━━━━━━━━
+🚨 *Threat Activity (7d)*
+Phishing Emails: *{phishing_count}*
 """
 
-    for category, score in category_avg.items():
-        message += f"\n• {category}: {score}%"
+# Top domains (compact)
+if top_domains:
+    domains_str = ", ".join([f"{d} ({c})" for d, c in top_domains])
+    message += f"\nTop Domains: {domains_str}"
+else:
+    message += "\nTop Domains: None"
 
-    # ✅ --- Industry Benchmark (ADDED HERE) ---
-    message += f"""
-
-📊 *Industry Benchmark (Microsoft Secure Score)*  
-• Average tenant score: 45% – 60%  
-• Security-mature organizations: 65% – 80%  
-• Top-tier / highly regulated: 80% – 90%+  
-"""
-
-    # --- Phishing summary ---
-    message += f"\n📧 *Phishing Emails (last 7 days):* {phishing_count}"
-
-    # Top domains
-    message += "\n\n🌐 *Top Phishing Domains:*"
-    if top_domains:
-        for d, c in top_domains:
-            message += f"\n• {d} ({c})"
-    else:
-        message += "\n• None"
-
-    # Top users
-    message += "\n\n🎯 *Most Targeted Users:*"
-    if top_users:
-        for u, c in top_users:
-            message += f"\n• {u} ({c})"
-    else:
-        message += "\n• None"
+# Top users (compact)
+if top_users:
+    users_str = ", ".join([f"{u} ({c})" for u, c in top_users])
+    message += f"\nTop Targets: {users_str}"
+else:
+    message += "\nTop Targets: None"
 
     # --- Send ---
     send_to_slack(message)
