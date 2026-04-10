@@ -1,0 +1,32 @@
+name: Weekly Defender Report
+
+on:
+  schedule:
+    # 12 PM Peru (UTC-5) = 17:00 UTC
+    - cron: "0 17 * * 5"
+
+  workflow_dispatch:
+
+jobs:
+  run-report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: pip install requests python-dotenv
+
+      - name: Run script
+        env:
+          TENANT_ID: ${{ secrets.TENANT_ID }}
+          DEFENDER_API_CLIENT_ID: ${{ secrets.DEFENDER_API_CLIENT_ID }}
+          DEFENDER_API_CLIENT_SECRET: ${{ secrets.DEFENDER_API_CLIENT_SECRET }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: python main.py
