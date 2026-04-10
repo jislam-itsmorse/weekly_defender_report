@@ -140,20 +140,18 @@ def main():
 🔐 *Weekly Defender Report* ({now})
 
 *Overall Secure Score:* {overall_pct:.2f}% ({current}/{max_score})
+    message += """
 
+📊 *Industry Benchmark (Microsoft Secure Score)*  
+• Average tenant score: 45% – 60%  
+• Security-mature organizations: 65% – 80%  
+• Top-tier / highly regulated: 80% – 90%+  
+    """
 *Category Breakdown:*
 """
 
     for category, score in category_avg.items():
         message += f"\n• {category}: {score}%"
-
-    message += """
-    
-    📊 *Industry Benchmark (Microsoft Secure Score)*  
-    • Average tenant score: 45% – 60%  
-    • Security-mature organizations: 65% – 80%  
-    • Top-tier / highly regulated: 80% – 90%+  
-    """
 
     message += f"\n\n📧 *Phishing Emails (last 7 days):* {phishing_count}"
 
