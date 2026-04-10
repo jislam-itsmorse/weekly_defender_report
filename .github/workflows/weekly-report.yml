@@ -3,7 +3,7 @@ name: Weekly Defender Report
 on:
   schedule:
     # 12 PM Peru (UTC-5) = 17:00 UTC
-    - cron: "0 17 * * 5"
+    - cron: "2 17 * * 5"
 
   workflow_dispatch:
 
