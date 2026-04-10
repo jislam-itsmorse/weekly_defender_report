@@ -1,13 +1,11 @@
 from collections import defaultdict
 import requests
 import os
-from dotenv import load_dotenv
 from datetime import datetime
 
 # =========================
 # CONFIG
 # =========================
-load_dotenv()
 
 TENANT_ID = os.getenv("TENANT_ID")
 CLIENT_ID = os.getenv("DEFENDER_API_CLIENT_ID")
@@ -34,7 +32,7 @@ def get_access_token():
     return response.json()["access_token"]
 
 # =========================
-# STEP 2: Run KQL Query (FIXED → POST)
+# STEP 2: Run KQL Query
 # =========================
 def run_query(token):
     headers = {
@@ -47,7 +45,7 @@ def run_query(token):
     | where Timestamp > ago(7d)
     | where isnotempty(ThreatTypes)
     | where ThreatTypes has_any ("Phish", "CredentialPhish")
-    | summarize count()
+    | summarize PhishCount = toint(count())
     """
 
     body = {"query": query}
@@ -55,6 +53,14 @@ def run_query(token):
     response = requests.post(API_URL_QUERY, headers=headers, json=body)
     response.raise_for_status()
     return response.json()
+
+# =========================
+# HELPER: Extract value safely
+# =========================
+def extract_value(val):
+    if isinstance(val, dict):
+        return val.get("value", 0)
+    return val
 
 # =========================
 # STEP 3: Get Security Scores
@@ -91,9 +97,7 @@ def get_security_score(token):
 # STEP 4: Send to Slack
 # =========================
 def send_to_slack(message):
-    payload = {
-        "text": message
-    }
+    payload = {"text": message}
 
     response = requests.post(SLACK_WEBHOOK_URL, json=payload)
     response.raise_for_status()
@@ -104,19 +108,20 @@ def send_to_slack(message):
 def main():
     token = get_access_token()
 
-    # Get phishing count
+    # --- Phishing count ---
     query_data = run_query(token)
     results = query_data.get("results", [])
 
-    if results and isinstance(results[0], dict):
-        phishing_count = list(results[0].values())[0]
+    if results:
+        raw_value = results[0].get("PhishCount", 0)
+        phishing_count = extract_value(raw_value)
     else:
         phishing_count = 0
 
-    # Get security score
+    # --- Secure Score ---
     overall_pct, current, max_score, category_avg = get_security_score(token)
 
-    # Build Slack message
+    # --- Build Slack message ---
     now = datetime.utcnow().strftime("%Y-%m-%d")
 
     message = f"""
@@ -127,15 +132,15 @@ def main():
 *Category Breakdown:*
 """
 
-    for k, v in category_avg.items():
-        message += f"\n• {k}: {v}%"
+    for category, score in category_avg.items():
+        message += f"\n• {category}: {score}%"
 
     message += f"\n\n📧 *Phishing Emails (last 7 days):* {phishing_count}"
 
-    # Send
+    # --- Send ---
     send_to_slack(message)
 
-    print("Report sent to Slack!")
+    print("✅ Report sent to Slack successfully!")
 
 # =========================
 if __name__ == "__main__":
