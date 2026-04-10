@@ -148,6 +148,7 @@ def main():
         message += f"\n• {category}: {score}%"
 
     message += """
+    
     📊 *Industry Benchmark (Microsoft Secure Score)*  
     • Average tenant score: 45% – 60%  
     • Security-mature organizations: 65% – 80%  
