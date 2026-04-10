@@ -58,7 +58,7 @@ def run_query(token):
     return response.json()
 
 # =========================
-# HELPER: Extract value safely
+# HELPER
 # =========================
 def extract_value(val):
     if isinstance(val, dict):
@@ -90,14 +90,15 @@ def get_security_score(token):
         pct = c.get("scoreInPercentage", 0)
         category_scores[category].append(pct)
 
-    category_avg = {}
-    for category, values in category_scores.items():
-        category_avg[category] = round(sum(values) / len(values), 2)
+    category_avg = {
+        category: round(sum(values) / len(values), 2)
+        for category, values in category_scores.items()
+    }
 
     return overall_pct, current, max_score, category_avg
 
 # =========================
-# NEW: Auto Rating Function
+# Auto Rating
 # =========================
 def get_rating(score):
     if score >= 85:
@@ -113,12 +114,11 @@ def get_rating(score):
 # STEP 4: Send to Slack
 # =========================
 def send_to_slack(message):
-    payload = {"text": message}
-    response = requests.post(SLACK_WEBHOOK_URL, json=payload)
+    response = requests.post(SLACK_WEBHOOK_URL, json={"text": message})
     response.raise_for_status()
 
 # =========================
-# STEP 5: Main Logic
+# MAIN
 # =========================
 def main():
     token = get_access_token()
@@ -129,7 +129,6 @@ def main():
 
     if results:
         row = results[0]
-
         phishing_count = extract_value(row.get("TotalPhish", 0))
 
         domains = row.get("TopDomains", [])
@@ -137,7 +136,6 @@ def main():
 
         top_domains = Counter(domains).most_common(3)
         top_users = Counter(users).most_common(3)
-
     else:
         phishing_count = 0
         top_domains = []
@@ -145,20 +143,18 @@ def main():
 
     # --- Secure Score ---
     overall_pct, current, max_score, category_avg = get_security_score(token)
-
-    # --- Rating ---
     rating = get_rating(overall_pct)
 
-    # --- Build Slack message (IMPROVED UI + AUTO RATING) ---
+    # --- Build Message ---
     now = datetime.utcnow().strftime("%Y-%m-%d")
 
     message = f"""
 🔐 *Weekly Defender Report* ({now})
 
-*Secure Score:* {overall_pct:.1f}% | ({current}/{max_score})  _({rating})_
+*Secure Score:* {overall_pct:.1f}%  _({rating})_
 
 ━━━━━━━━━━━━━━
-📊 *Industry Benchmark*
+📊 *Benchmark*
 Avg: 45–60% | Mature: 65–80% | Top: 80%+
 ━━━━━━━━━━━━━━
 
@@ -171,19 +167,21 @@ Data: {category_avg.get('Data', 0):.1f}% | Device: {category_avg.get('Device', 0
 Phishing Emails: *{phishing_count}*
 """
 
-    # --- Top Domains ---
+    # --- Top Domains (LIST FORMAT) ---
+    message += "\n\n🌐 *Top Phishing Domains:*"
     if top_domains:
-        domains_str = ", ".join([f"{d} ({c})" for d, c in top_domains])
-        message += f"\nTop Domains: {domains_str}"
+        for d, c in top_domains:
+            message += f"\n• {d} ({c})"
     else:
-        message += "\nTop Domains: None"
+        message += "\n• None"
 
-    # --- Top Users ---
+    # --- Top Users (LIST FORMAT) ---
+    message += "\n\n🎯 *Most Targeted Users:*"
     if top_users:
-        users_str = ", ".join([f"{u} ({c})" for u, c in top_users])
-        message += f"\nTop Targets: {users_str}"
+        for u, c in top_users:
+            message += f"\n• {u} ({c})"
     else:
-        message += "\nTop Targets: None"
+        message += "\n• None"
 
     # --- Send ---
     send_to_slack(message)
