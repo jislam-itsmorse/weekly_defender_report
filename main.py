@@ -155,10 +155,10 @@ def main():
     message = f"""
 🔐 *Weekly Defender Report* ({now})
 
-*Secure Score:* {overall_pct:.1f}%  _({rating})_
+*Secure Score:* {overall_pct:.1f}% | ({current}/{max_score})  _({rating})_
 
 ━━━━━━━━━━━━━━
-📊 *Benchmark*
+📊 *Industry Benchmark*
 Avg: 45–60% | Mature: 65–80% | Top: 80%+
 ━━━━━━━━━━━━━━
 
