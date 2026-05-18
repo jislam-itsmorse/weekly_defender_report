@@ -1,0 +1,8 @@
+env/
+__pycache__/
+.vscode/
+.DS_Store
+local.settings.json
+*.pyc
+.env
+.python_packages

@@ -1,0 +1,9 @@
+.github/
+.gitignore
+env/
+local.settings.json
+__pycache__
+*.pyc
+.git*
+.vscode/
+.env

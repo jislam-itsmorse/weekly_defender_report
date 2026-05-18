@@ -1,15 +1,23 @@
 from collections import defaultdict, Counter
 from datetime import datetime
+from dotenv import load_dotenv
 import requests
 import os
 
 # =========================
 # CONFIG
 # =========================
-TENANT_ID = os.getenv("TENANT_ID")
-CLIENT_ID = os.getenv("DEFENDER_API_CLIENT_ID")
-CLIENT_SECRET = os.getenv("DEFENDER_API_CLIENT_SECRET")
-SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
+load_dotenv()  # Load from .env file if present
+def get_env(key: str) -> str:
+    value = os.getenv(key)
+    if not value:
+        raise ValueError(f"Missing required environment variable: {key}")
+    return value
+
+TENANT_ID = get_env("TENANT_ID")
+CLIENT_ID = get_env("CLIENT_ID")
+CLIENT_SECRET = get_env("CLIENT_SECRET")
+SLACK_WEBHOOK_URL = get_env("SLACK_WEBHOOK_URL")
 
 AUTH_URL = f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/token"
 API_URL_SCORES = "https://graph.microsoft.com/v1.0/security/secureScores?$top=1"
@@ -122,7 +130,6 @@ def send_to_slack(message):
 # =========================
 def main():
     token = get_access_token()
-
     # --- Query phishing insights ---
     query_data = run_query(token)
     results = query_data.get("results", [])
@@ -134,8 +141,8 @@ def main():
         domains = row.get("TopDomains", [])
         users = row.get("TopRecipients", [])
 
-        top_domains = Counter(domains).most_common(3)
-        top_users = Counter(users).most_common(3)
+        top_domains = Counter(domains).most_common(5)
+        top_users = Counter(users).most_common(5)
     else:
         phishing_count = 0
         top_domains = []
